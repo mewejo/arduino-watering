@@ -48,6 +48,8 @@ int translateToMoistureReadingPercentage(int readingRaw) {
 }
 
 void setup() {
+  analogReference(EXTERNAL);
+  
   pinMode(WATER_1_PIN, OUTPUT);
   pinMode(WATER_2_PIN, OUTPUT);
   pinMode(WATER_3_PIN, OUTPUT);
