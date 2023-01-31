@@ -61,6 +61,8 @@ void setup() {
   digitalWrite(WATER_4_PIN, HIGH);
   
   Serial.begin(9600);
+  
+  delay(1000);
 
   Serial.println("READY");
 }
