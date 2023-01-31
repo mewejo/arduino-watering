@@ -20,7 +20,7 @@ String command;
 
 void sendSensorReading(String id, uint8_t pin) {
   int readingRaw = analogRead(pin);
-  Serial.print("MS" + id + ":");
+  Serial.print("MS:" + id + ":");
   Serial.print(readingRaw);
   Serial.print(":");
   Serial.println(translateToMoistureReadingPercentage(readingRaw));
@@ -61,7 +61,8 @@ void setup() {
   digitalWrite(WATER_4_PIN, HIGH);
   
   Serial.begin(9600);
-  Serial.println("Starting");
+
+  Serial.println("READY");
 }
 
 void loop() {  
@@ -97,16 +98,18 @@ void loop() {
         digitalWrite(WATER_4_PIN, LOW);
       } else if (command.equals("j")) {
         digitalWrite(WATER_4_PIN, HIGH);
+      } else if (command.equals("k")) {
+        Serial.println("READINGS_START");
+        sendSensorReading("1", MOISTURE_SENSOR_1_PIN);
+        sendSensorReading("2", MOISTURE_SENSOR_2_PIN);
+        sendSensorReading("3", MOISTURE_SENSOR_3_PIN);
+        sendSensorReading("4", MOISTURE_SENSOR_4_PIN);
+        sendSensorReading("5", MOISTURE_SENSOR_5_PIN);
+        sendSensorReading("6", MOISTURE_SENSOR_6_PIN);
+        Serial.println("READINGS_END");
       }
     }
   }
 
-  sendSensorReading("1", MOISTURE_SENSOR_1_PIN);
-  sendSensorReading("2", MOISTURE_SENSOR_2_PIN);
-  sendSensorReading("3", MOISTURE_SENSOR_3_PIN);
-  sendSensorReading("4", MOISTURE_SENSOR_4_PIN);
-  sendSensorReading("5", MOISTURE_SENSOR_5_PIN);
-  sendSensorReading("6", MOISTURE_SENSOR_6_PIN);
-
-  delay(250);
+  delay(50);
 }
