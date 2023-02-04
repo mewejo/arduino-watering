@@ -3,15 +3,10 @@
 const int BUFFER_SIZE = 1;
 char buf[BUFFER_SIZE];
 
-#define MOISTURE_SENSOR_1_PIN A0
-#define MOISTURE_SENSOR_2_PIN A1
-#define MOISTURE_SENSOR_3_PIN A2
-#define MOISTURE_SENSOR_4_PIN A3
-#define MOISTURE_SENSOR_5_PIN A4
-#define MOISTURE_SENSOR_6_PIN A5
-
-#define MOISTURE_DRY 500
-#define MOISTURE_WET 240
+uint8_t MOISTURE_SENSOR_PINS[6];
+String MOISTURE_SENSOR_IDS[6];
+int MOISTURE_SENSOR_DRY[6];
+int MOISTURE_SENSOR_WET[6];
 
 uint8_t WATER_OUTLET_PINS[4];
 int WATER_OUTLET_STATES[4];
@@ -24,21 +19,57 @@ auto timer = timer_create_default();
 void setup() {
   analogReference(EXTERNAL);
 
+  // Water outlets pins
   WATER_OUTLET_PINS[0] = 5;
   WATER_OUTLET_PINS[1] = 6;
   WATER_OUTLET_PINS[2] = 7;
   WATER_OUTLET_PINS[3] = 8;
 
+  // Water outlet IDs
   WATER_OUTLET_IDS[0] = "1";
   WATER_OUTLET_IDS[1] = "2";
   WATER_OUTLET_IDS[2] = "3";
   WATER_OUTLET_IDS[3] = "4";
   
+  // Moisture sensor pins
+  MOISTURE_SENSOR_PINS[0] = A0;
+  MOISTURE_SENSOR_PINS[1] = A1;
+  MOISTURE_SENSOR_PINS[2] = A2;
+  MOISTURE_SENSOR_PINS[3] = A3;
+  MOISTURE_SENSOR_PINS[4] = A4;
+  MOISTURE_SENSOR_PINS[5] = A5;
+
+  // Moisture sensor IDs
+  MOISTURE_SENSOR_IDS[0] = "1";
+  MOISTURE_SENSOR_IDS[1] = "2";
+  MOISTURE_SENSOR_IDS[2] = "3";
+  MOISTURE_SENSOR_IDS[3] = "4";
+  MOISTURE_SENSOR_IDS[4] = "5";
+  MOISTURE_SENSOR_IDS[5] = "6";
+
+  // Moisture sensor dry thresholds
+  MOISTURE_SENSOR_DRY[0] = 500;
+  MOISTURE_SENSOR_DRY[1] = 500;
+  MOISTURE_SENSOR_DRY[2] = 500;
+  MOISTURE_SENSOR_DRY[3] = 500;
+  MOISTURE_SENSOR_DRY[4] = 500;
+  MOISTURE_SENSOR_DRY[5] = 500;
+
+  // Moisture sensor wet thresholds
+  MOISTURE_SENSOR_WET[0] = 240;
+  MOISTURE_SENSOR_WET[1] = 240;
+  MOISTURE_SENSOR_WET[2] = 240;
+  MOISTURE_SENSOR_WET[3] = 240;
+  MOISTURE_SENSOR_WET[4] = 240;
+  MOISTURE_SENSOR_WET[5] = 240;
+
+  // Set water outlet pins up
   for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i = i + 1) {
     pinMode(WATER_OUTLET_PINS[i], OUTPUT);
     digitalWrite(WATER_OUTLET_PINS[i], HIGH);
   }
   
+  // Comms
   Serial.begin(9600);
 
   timer.every(10000, sendHeartbeat);
@@ -46,12 +77,15 @@ void setup() {
   sendHeartbeat();
 }
 
-void sendSensorReading(String id, uint8_t pin) {
-  int readingRaw = analogRead(pin);
-  Serial.print("MS:" + id + ":");
+void sendSensorReading(int sensorIndex) {
+  int readingRaw = analogRead(
+    MOISTURE_SENSOR_PINS[sensorIndex]
+  );
+
+  Serial.print("MS:" + MOISTURE_SENSOR_IDS[sensorIndex] + ":");
   Serial.print(readingRaw);
   Serial.print(":");
-  Serial.println(translateToMoistureReadingPercentage(readingRaw));
+  Serial.println(translateToMoistureReadingPercentage(sensorIndex, readingRaw));
 }
 
 void sendWaterOutletState(int outletIndex) {
@@ -66,12 +100,12 @@ void sendWaterOutletState(int outletIndex) {
   Serial.print("WO:" + WATER_OUTLET_IDS[outletIndex] + ":" + state);
 }
 
-int translateToMoistureReadingPercentage(int readingRaw) {
+int translateToMoistureReadingPercentage(int sensorIndex, int readingRaw) {
   
   int percentage = map(
     readingRaw,
-    MOISTURE_DRY,
-    MOISTURE_WET,
+    MOISTURE_SENSOR_DRY[sensorIndex],
+    MOISTURE_SENSOR_WET[sensorIndex],
     0,
     100
   );
@@ -94,13 +128,6 @@ bool sendHeartbeat() {
 
 void loop() {  
   timer.tick();
-
-  for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i++) {
-    digitalWrite(
-      WATER_OUTLET_PINS[i], 
-      WATER_OUTLET_STATES[i]
-    );
-  }
 
   while (Serial.available()) {
     int rlen = Serial.readBytes(buf, BUFFER_SIZE);
@@ -136,22 +163,29 @@ void loop() {
         WATER_OUTLET_STATES[3] = HIGH;
       } else if (command.equals("k")) {
         Serial.println("READINGS_START");
-        sendSensorReading("1", MOISTURE_SENSOR_1_PIN);
-        sendSensorReading("2", MOISTURE_SENSOR_2_PIN);
-        sendSensorReading("3", MOISTURE_SENSOR_3_PIN);
-        sendSensorReading("4", MOISTURE_SENSOR_4_PIN);
-        sendSensorReading("5", MOISTURE_SENSOR_5_PIN);
-        sendSensorReading("6", MOISTURE_SENSOR_6_PIN);
+
+        for (int i = 0; i < sizeof(MOISTURE_SENSOR_PINS); i++) {
+          sendSensorReading(i);
+        }
+
         Serial.println("READINGS_END");
       } else if (command.equals("l")) { // Send water outlet states
-        Serial.println("READINGS_START");
-        sendWaterOutletState(0);
-        sendWaterOutletState(1);
-        sendWaterOutletState(2);
-        sendWaterOutletState(3);
-        Serial.println("READINGS_END");
+        Serial.println("OUTLETS_START");
+
+        for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i++) {
+          sendWaterOutletState(i);
+        }
+
+        Serial.println("OUTLETS_END");
       }
     }
+  }
+
+  for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i++) {
+    digitalWrite(
+      WATER_OUTLET_PINS[i], 
+      WATER_OUTLET_STATES[i]
+    );
   }
 
   delay(50);
