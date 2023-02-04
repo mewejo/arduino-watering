@@ -18,6 +18,19 @@ String command;
 
 auto timer = timer_create_default();
 
+void setWaterOutletState(int outletIndex, bool state = false) {
+  if (state) {
+    WATER_OUTLET_STATES[outletIndex] = LOW;
+    WATER_OUTLET_OFF_TIMERS[outletIndex] = timer.in(10000, setWaterOutletState, outletIndex);
+  } else {
+    WATER_OUTLET_STATES[outletIndex] = HIGH;
+
+    if (WATER_OUTLET_OFF_TIMERS[outletIndex] != NULL) {
+      timer.cancel(WATER_OUTLET_OFF_TIMERS[outletIndex]);
+    }
+  }
+}
+
 void setup() {
   analogReference(EXTERNAL);
 
@@ -69,6 +82,7 @@ void setup() {
   for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i = i + 1) {
     pinMode(WATER_OUTLET_PINS[i], OUTPUT);
     digitalWrite(WATER_OUTLET_PINS[i], HIGH);
+    setWaterOutletState(i, false);
   }
   
   // Comms
@@ -106,19 +120,6 @@ void sendWaterOutletState(int outletIndex) {
   }
 
   Serial.println("WO:" + WATER_OUTLET_IDS[outletIndex] + ":" + realState + ":" + setState);
-}
-
-void setWaterOutletState(int outletIndex, bool state = false) {
-  if (state) {
-    WATER_OUTLET_STATES[outletIndex] = LOW;
-    WATER_OUTLET_OFF_TIMERS[outletIndex] = timer.in(5000, setWaterOutletState, outletIndex);
-  } else {
-    WATER_OUTLET_STATES[outletIndex] = HIGH;
-
-    if (WATER_OUTLET_OFF_TIMERS[outletIndex] != NULL) {
-      timer.cancel(WATER_OUTLET_OFF_TIMERS[outletIndex]);
-    }
-  }
 }
 
 int translateToMoistureReadingPercentage(int sensorIndex, int readingRaw) {
