@@ -101,6 +101,14 @@ void sendWaterOutletState(int outletIndex) {
   Serial.print("WO:" + WATER_OUTLET_IDS[outletIndex] + ":" + state);
 }
 
+void setWaterOutletState(int outletIndex, bool state) {
+  if (state) {
+    WATER_OUTLET_STATES[outletIndex] = LOW;
+  } else {
+    WATER_OUTLET_STATES[outletIndex] = HIGH;
+  }
+}
+
 int translateToMoistureReadingPercentage(int sensorIndex, int readingRaw) {
   
   int percentage = map(
@@ -137,31 +145,30 @@ void loop() {
       command = buf[i];
 
       if (command.equals("a")) { // Water off
-        WATER_OUTLET_STATES[0] = HIGH;
-        WATER_OUTLET_STATES[1] = HIGH;
-        WATER_OUTLET_STATES[2] = HIGH;
-        WATER_OUTLET_STATES[3] = HIGH;
+        for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i++) {
+          setWaterOutletState(i, false);
+        }
       } else if (command.equals("b")) { // Water on
-        WATER_OUTLET_STATES[0] = LOW;
-        WATER_OUTLET_STATES[1] = LOW;
-        WATER_OUTLET_STATES[2] = LOW;
-        WATER_OUTLET_STATES[3] = LOW;
+        for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i++) {
+          setWaterOutletState(i, true);
+        }
       } else if (command.equals("c")) {
-        WATER_OUTLET_STATES[0] = LOW;
+        setWaterOutletState(0, true);
       } else if (command.equals("d")) {
-        WATER_OUTLET_STATES[0] = HIGH;
+        setWaterOutletState(0, false);
       } else if (command.equals("e")) {
         WATER_OUTLET_STATES[1] = LOW;
+        setWaterOutletState(1, true);
       } else if (command.equals("f")) {
-        WATER_OUTLET_STATES[1] = HIGH;
+        setWaterOutletState(1, false);
       } else if (command.equals("g")) {
-        WATER_OUTLET_STATES[2] = LOW;
+        setWaterOutletState(2, true);
       } else if (command.equals("h")) {
-        WATER_OUTLET_STATES[2] = HIGH;
+        setWaterOutletState(2, false);
       } else if (command.equals("i")) {
-        WATER_OUTLET_STATES[3] = LOW;
+        setWaterOutletState(3, true);
       } else if (command.equals("j")) {
-        WATER_OUTLET_STATES[3] = HIGH;
+        setWaterOutletState(3, false);
       } else if (command.equals("k")) {
         Serial.println("READINGS_START");
 
