@@ -182,7 +182,7 @@ void loop() {
         setWaterOutletState(3, true);
       } else if (command.equals("j")) {
         setWaterOutletState(3, false);
-      } else if (command.equals("k")) {
+      } else if (command.equals("k")) { // Send sensor readings
         Serial.println("READINGS_START");
 
         for (int i = 0; i < sizeof(MOISTURE_SENSOR_PINS); i++) {
