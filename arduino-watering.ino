@@ -1,10 +1,5 @@
 #include <arduino-timer.h>
 
-int WATER_1_PIN = 5;
-int WATER_2_PIN = 6;
-int WATER_3_PIN = 7;
-int WATER_4_PIN = 8;
-
 const int BUFFER_SIZE = 1;
 char buf[BUFFER_SIZE];
 
@@ -18,9 +13,38 @@ char buf[BUFFER_SIZE];
 #define MOISTURE_DRY 500
 #define MOISTURE_WET 240
 
+uint8_t WATER_OUTLET_PINS[4];
+int WATER_OUTLET_STATES[4];
+String WATER_OUTLET_IDS[4];
+
 String command;
 
 auto timer = timer_create_default();
+
+void setup() {
+  analogReference(EXTERNAL);
+
+  WATER_OUTLET_PINS[0] = 5;
+  WATER_OUTLET_PINS[1] = 6;
+  WATER_OUTLET_PINS[2] = 7;
+  WATER_OUTLET_PINS[3] = 8;
+
+  WATER_OUTLET_IDS[0] = "1";
+  WATER_OUTLET_IDS[1] = "2";
+  WATER_OUTLET_IDS[2] = "3";
+  WATER_OUTLET_IDS[3] = "4";
+  
+  for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i = i + 1) {
+    pinMode(WATER_OUTLET_PINS[i], OUTPUT);
+    digitalWrite(WATER_OUTLET_PINS[i], HIGH);
+  }
+  
+  Serial.begin(9600);
+
+  timer.every(10000, sendHeartbeat);
+
+  sendHeartbeat();
+}
 
 void sendSensorReading(String id, uint8_t pin) {
   int readingRaw = analogRead(pin);
@@ -28,6 +52,18 @@ void sendSensorReading(String id, uint8_t pin) {
   Serial.print(readingRaw);
   Serial.print(":");
   Serial.println(translateToMoistureReadingPercentage(readingRaw));
+}
+
+void sendWaterOutletState(int outletIndex) {
+  String state;
+  
+  if (digitalRead(WATER_OUTLET_PINS[outletIndex])) {
+    state = "1";    
+  } else {
+    state = "0";
+  }
+
+  Serial.print("WO:" + WATER_OUTLET_IDS[outletIndex] + ":" + state);
 }
 
 int translateToMoistureReadingPercentage(int readingRaw) {
@@ -56,28 +92,15 @@ bool sendHeartbeat() {
   return true;
 }
 
-void setup() {
-  analogReference(EXTERNAL);
-  
-  pinMode(WATER_1_PIN, OUTPUT);
-  pinMode(WATER_2_PIN, OUTPUT);
-  pinMode(WATER_3_PIN, OUTPUT);
-  pinMode(WATER_4_PIN, OUTPUT);
-
-  digitalWrite(WATER_1_PIN, HIGH);
-  digitalWrite(WATER_2_PIN, HIGH);
-  digitalWrite(WATER_3_PIN, HIGH);
-  digitalWrite(WATER_4_PIN, HIGH);
-  
-  Serial.begin(9600);
-
-  timer.every(10000, sendHeartbeat);
-
-  sendHeartbeat()
-}
-
 void loop() {  
   timer.tick();
+
+  for (int i = 0; i < sizeof(WATER_OUTLET_PINS); i++) {
+    digitalWrite(
+      WATER_OUTLET_PINS[i], 
+      WATER_OUTLET_STATES[i]
+    );
+  }
 
   while (Serial.available()) {
     int rlen = Serial.readBytes(buf, BUFFER_SIZE);
@@ -86,31 +109,31 @@ void loop() {
       command = buf[i];
 
       if (command.equals("a")) { // Water off
-        digitalWrite(WATER_1_PIN, HIGH);
-        digitalWrite(WATER_2_PIN, HIGH);
-        digitalWrite(WATER_3_PIN, HIGH);
-        digitalWrite(WATER_4_PIN, HIGH);
+        WATER_OUTLET_STATES[0] = HIGH;
+        WATER_OUTLET_STATES[1] = HIGH;
+        WATER_OUTLET_STATES[2] = HIGH;
+        WATER_OUTLET_STATES[3] = HIGH;
       } else if (command.equals("b")) { // Water on
-        digitalWrite(WATER_1_PIN, LOW);
-        digitalWrite(WATER_2_PIN, LOW);
-        digitalWrite(WATER_3_PIN, LOW);
-        digitalWrite(WATER_4_PIN, LOW);
+        WATER_OUTLET_STATES[0] = LOW;
+        WATER_OUTLET_STATES[1] = LOW;
+        WATER_OUTLET_STATES[2] = LOW;
+        WATER_OUTLET_STATES[3] = LOW;
       } else if (command.equals("c")) {
-        digitalWrite(WATER_1_PIN, LOW);
+        WATER_OUTLET_STATES[0] = LOW;
       } else if (command.equals("d")) {
-        digitalWrite(WATER_1_PIN, HIGH);
+        WATER_OUTLET_STATES[0] = HIGH;
       } else if (command.equals("e")) {
-        digitalWrite(WATER_2_PIN, LOW);
+        WATER_OUTLET_STATES[1] = LOW;
       } else if (command.equals("f")) {
-        digitalWrite(WATER_2_PIN, HIGH);
+        WATER_OUTLET_STATES[1] = HIGH;
       } else if (command.equals("g")) {
-        digitalWrite(WATER_3_PIN, LOW);
+        WATER_OUTLET_STATES[2] = LOW;
       } else if (command.equals("h")) {
-        digitalWrite(WATER_3_PIN, HIGH);
+        WATER_OUTLET_STATES[2] = HIGH;
       } else if (command.equals("i")) {
-        digitalWrite(WATER_4_PIN, LOW);
+        WATER_OUTLET_STATES[3] = LOW;
       } else if (command.equals("j")) {
-        digitalWrite(WATER_4_PIN, HIGH);
+        WATER_OUTLET_STATES[3] = HIGH;
       } else if (command.equals("k")) {
         Serial.println("READINGS_START");
         sendSensorReading("1", MOISTURE_SENSOR_1_PIN);
@@ -119,6 +142,13 @@ void loop() {
         sendSensorReading("4", MOISTURE_SENSOR_4_PIN);
         sendSensorReading("5", MOISTURE_SENSOR_5_PIN);
         sendSensorReading("6", MOISTURE_SENSOR_6_PIN);
+        Serial.println("READINGS_END");
+      } else if (command.equals("l")) { // Send water outlet states
+        Serial.println("READINGS_START");
+        sendWaterOutletState(0);
+        sendWaterOutletState(1);
+        sendWaterOutletState(2);
+        sendWaterOutletState(3);
         Serial.println("READINGS_END");
       }
     }
