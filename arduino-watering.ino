@@ -12,6 +12,7 @@ int MOISTURE_SENSOR_WET[6];
 uint8_t WATER_OUTLET_PINS[4];
 int WATER_OUTLET_STATES[4];
 String WATER_OUTLET_IDS[4];
+Timer<>::Task WATER_OUTLET_OFF_TIMERS[4];
 
 String command;
 
@@ -72,10 +73,7 @@ void setup() {
   
   // Comms
   Serial.begin(9600);
-
-  timer.every(10000, sendHeartbeat);
-
-  sendHeartbeat();
+  timer.every(5000, sendHeartbeat);
 }
 
 void sendSensorReading(int sensorIndex) {
@@ -90,22 +88,36 @@ void sendSensorReading(int sensorIndex) {
 }
 
 void sendWaterOutletState(int outletIndex) {
-  String state;
+  String realState;
+  String setState;
   
+  // Below look inversed because LOW is actually 'water on' due to sinking current turning the relay on
+
   if (digitalRead(WATER_OUTLET_PINS[outletIndex])) {
-    state = "1";    
+    realState = "0";    
   } else {
-    state = "0";
+    realState = "1";
   }
 
-  Serial.print("WO:" + WATER_OUTLET_IDS[outletIndex] + ":" + state);
+  if (WATER_OUTLET_STATES[outletIndex]) {
+    setState = "0";    
+  } else {
+    setState = "1";    
+  }
+
+  Serial.println("WO:" + WATER_OUTLET_IDS[outletIndex] + ":" + realState + ":" + setState);
 }
 
-void setWaterOutletState(int outletIndex, bool state) {
+void setWaterOutletState(int outletIndex, bool state = false) {
   if (state) {
     WATER_OUTLET_STATES[outletIndex] = LOW;
+    WATER_OUTLET_OFF_TIMERS[outletIndex] = timer.in(5000, setWaterOutletState, outletIndex);
   } else {
     WATER_OUTLET_STATES[outletIndex] = HIGH;
+
+    if (WATER_OUTLET_OFF_TIMERS[outletIndex] != NULL) {
+      timer.cancel(WATER_OUTLET_OFF_TIMERS[outletIndex]);
+    }
   }
 }
 
