@@ -1,3 +1,5 @@
+#include <arduino-timer.h>
+
 int WATER_1_PIN = 5;
 int WATER_2_PIN = 6;
 int WATER_3_PIN = 7;
@@ -17,6 +19,8 @@ char buf[BUFFER_SIZE];
 #define MOISTURE_WET 240
 
 String command;
+
+auto timer = timer_create_default();
 
 void sendSensorReading(String id, uint8_t pin) {
   int readingRaw = analogRead(pin);
@@ -47,6 +51,11 @@ int translateToMoistureReadingPercentage(int readingRaw) {
   return percentage;
 }
 
+bool sendHeartbeat() {
+  Serial.println("HEARTBEAT");
+  return true;
+}
+
 void setup() {
   analogReference(EXTERNAL);
   
@@ -61,13 +70,15 @@ void setup() {
   digitalWrite(WATER_4_PIN, HIGH);
   
   Serial.begin(9600);
-  
-  delay(1000);
 
-  Serial.println("READY");
+  timer.every(10000, sendHeartbeat);
+
+  sendHeartbeat()
 }
 
 void loop() {  
+  timer.tick();
+
   while (Serial.available()) {
     int rlen = Serial.readBytes(buf, BUFFER_SIZE);
 
