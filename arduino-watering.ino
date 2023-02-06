@@ -21,6 +21,11 @@ auto timer = timer_create_default();
 void setWaterOutletState(int outletIndex, bool state = false) {
   if (state) {
     WATER_OUTLET_STATES[outletIndex] = LOW;
+    
+    if (WATER_OUTLET_OFF_TIMERS[outletIndex] != NULL) {
+      timer.cancel(WATER_OUTLET_OFF_TIMERS[outletIndex]);
+    }
+
     WATER_OUTLET_OFF_TIMERS[outletIndex] = timer.in(10000, setWaterOutletState, outletIndex);
   } else {
     WATER_OUTLET_STATES[outletIndex] = HIGH;
