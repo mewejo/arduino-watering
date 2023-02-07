@@ -2,7 +2,7 @@
 
 This Arduino sketch is used to water a vegetable patch. It is designed to interface with another program over a serial connection. It will not water the garden on its own.
 
-I use it to water a vegetable patch with a [Goland application](https://github.com/mewejo/go-watering)
+I use it to water a vegetable patch with a [Goland application](https://github.com/mewejo/go-watering).
 
 ## Features
 
